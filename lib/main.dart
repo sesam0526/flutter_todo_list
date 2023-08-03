@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/task.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
 
@@ -32,6 +33,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final _textController = TextEditingController();
+  List<Task> tasks = [];
 
   String getToday() {
     DateTime now = DateTime.now();
@@ -64,7 +66,17 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ),
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      if (_textController.text == '') {
+                        return;
+                      } else {
+                        setState(() {
+                          var task = Task(_textController.text);
+                          tasks.add(task);
+                          _textController.clear();
+                        });
+                      }
+                    },
                     child: const Text("Add"),
                   )
                 ],
@@ -83,37 +95,43 @@ class _MyHomePageState extends State<MyHomePage> {
                 ],
               ),
             ),
-            Row(
-              children: [
-                Flexible(
-                  child: TextButton(
-                    style: TextButton.styleFrom(
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(Radius.zero),
+            for (var i = 0; i < tasks.length; i++)
+              Row(
+                children: [
+                  Flexible(
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.all(Radius.zero),
+                        ),
                       ),
-                    ),
-                    onPressed: () {},
-                    child: const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Row(
-                        children: [
-                          Icon(Icons.check_box_outline_blank_rounded),
-                          Text("todo1"),
-                        ],
+                      onPressed: () {},
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.check_box_outline_blank_rounded),
+                            Text(tasks[i].work),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                TextButton(
-                  onPressed: () {},
-                  child: const Text("수정"),
-                ),
-                TextButton(
-                  onPressed: () {},
-                  child: const Text("삭제"),
-                ),
-              ],
-            ),
+                  TextButton(
+                    onPressed: () {},
+                    child: const Text("수정"),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        // setState없으면 저장해도 바로 적용이 안됨, setState해야 렌더링에 바로 적용됨
+                        tasks.remove(tasks[i]);
+                      });
+                    },
+                    child: const Text("삭제"),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
