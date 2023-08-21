@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/task.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(const MyApp());
@@ -43,6 +45,42 @@ class _MyHomePageState extends State<MyHomePage> {
   int modifyingIndex = 0;
   double percent = 0.0;
 
+  addTaskToServer(Task task) async {
+    final response = await http.post(
+        Uri.http('10.0.2.2:8000', '/posting/addTask'),
+        headers: {'Content-type': 'application/json'},
+        body: jsonEncode(task));
+    print("response is = ${response.body}");
+    getTaskToServer(); // add할 때 최신화된 리스트를 가져와서 앱에 반영함
+  }
+
+  getTaskToServer() async {
+    // 데이터를 가져오는 것이라서 매개변수 필요X(특정날짜 데이터가 필요하면 매개변수로 특정날짜 보낼 수도..)
+    final response = await http.get(Uri.http('10.0.2.2:8000', '/posting'));
+    String responseBody = utf8.decode(response.bodyBytes);
+    List<Task> list = json
+        .decode(responseBody)
+        .map<Task>((json) => Task.fromJson(json))
+        .toList(); // 3번 chaining함
+    print(list.length);
+    setState(() {
+      tasks = list; // tasks에 만든 list를 넣음
+    });
+  }
+
+  updateTaskToServer(int id, String work) async {
+    final response = await http
+        .get(Uri.http('10.0.2.2:8000', '/posting/updateTask/$id/$work'));
+    getTaskToServer();
+    print(response.body);
+  }
+
+  deleteTaskToServer(int id) async {
+    final response =
+        await http.get(Uri.http('10.0.2.2:8000', '/posting/deleteTask/$id'));
+    getTaskToServer();
+  }
+
   String getToday() {
     DateTime now = DateTime.now();
     String strToday;
@@ -63,6 +101,14 @@ class _MyHomePageState extends State<MyHomePage> {
       }
       percent = completeTaskCnt / tasks.length;
     }
+  }
+
+  @override
+  void initState() {
+    // 빌드할 때 처음으로 시작하는 함수
+    // TODO: implement initState
+    super.initState();
+    getTaskToServer(); // 리스트를 가져옴
   }
 
   @override
@@ -97,9 +143,8 @@ class _MyHomePageState extends State<MyHomePage> {
                           isModifying
                               ? setState(() {
                                   // 수정
-                                  tasks[modifyingIndex].work =
-                                      _textController.text;
-                                  tasks[modifyingIndex].isComplete = false;
+                                  updateTaskToServer(tasks[modifyingIndex].id,
+                                      _textController.text);
                                   _textController.clear();
                                   modifyingIndex = 0;
                                   isModifying = false;
@@ -107,8 +152,11 @@ class _MyHomePageState extends State<MyHomePage> {
                               : setState(
                                   // 추가
                                   () {
-                                    var task = Task(_textController.text);
-                                    tasks.add(task);
+                                    var task = Task(
+                                        id: 0,
+                                        work: _textController.text,
+                                        isComplete: false);
+                                    addTaskToServer(task);
                                     _textController.clear();
                                   },
                                 );
@@ -185,7 +233,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       onPressed: () {
                         setState(() {
                           // setState없으면 저장해도 바로 적용이 안됨, setState해야 렌더링에 바로 적용됨
-                          tasks.remove(tasks[i]);
+                          deleteTaskToServer(tasks[i].id);
                           updatePercent();
                         });
                       },
